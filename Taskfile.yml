@@ -3,8 +3,8 @@ version: "3"
 silent: true
 
 vars:
-  MAIN_FILE: /path/to/main.go
-  APP_NAME: your-app-name
+  MAIN_FILE: main.go
+  APP_NAME: symlinkr
   GOPATH_BIN:
     sh: echo "$(go env GOPATH)/bin"
   BRANCH:
@@ -90,11 +90,6 @@ tasks:
             -X github.com/veerendra2/gopackages/version.BuildUser={{.BUILD_USER}} \
             -X github.com/veerendra2/gopackages/version.BuildDate={{.BUILD_TIME}}" \
             -o dist/{{.APP_NAME}}-{{.ITEM.OS}}-{{.ITEM.ARCH}} {{.MAIN_FILE}}
-
-  build-docker:
-    desc: "Build Docker image"
-    cmds:
-      - docker build -t {{.APP_NAME}} .
 
   security:
     desc: "Run security vulnerability scan"
