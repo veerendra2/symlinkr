@@ -3,7 +3,7 @@ version: "3"
 silent: true
 
 vars:
-  MAIN_FILE: main.go
+  MAIN_FILE: ./main.go
   APP_NAME: symlinkr
   GOPATH_BIN:
     sh: echo "$(go env GOPATH)/bin"
@@ -28,7 +28,7 @@ tasks:
     deps:
       - vet
     cmds:
-      - go run {{.MAIN_FILE}}
+      - go run . {{.CLI_ARGS}}
     env:
       LOG_FORMAT: console
       LOG_ADD_SOURCE: false

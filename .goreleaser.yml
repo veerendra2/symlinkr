@@ -14,7 +14,7 @@ builds:
     goarch:
       - amd64
       - arm64
-    main: main.go
+    main: .
     ldflags:
       - "-X github.com/veerendra2/gopackages/version.Version={{.Version}}"
       - "-X github.com/veerendra2/gopackages/version.Revision={{.ShortCommit}}"
@@ -49,4 +49,4 @@ brews:
     directory: Formula
     homepage: "https://github.com/veerendra2/symlinkr"
     description: "Declarative symlink management for dotfiles."
-    license: "MIT"
+    license: "Apache"
