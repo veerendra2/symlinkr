@@ -38,9 +38,10 @@ Usage:
 
 Flags:
   --config <path>    Config file path (default: symlinkr.yaml)
-  -r, --remove       Uninstall mode (remove all symlinks)
-  -f, --force        Force overwrite existing files
+  -r                 Uninstall mode (remove all symlinks)
+  -f                 Force overwrite existing files
   --dry-run          Preview changes without executing
+  -v                 Show version information
 
 Examples:
   symlinkr                              # Apply config

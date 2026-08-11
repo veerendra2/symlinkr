@@ -1,10 +1,17 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
+)
+
+var (
+	version   = "dev"
+	revision  = "none"
+	date      = "unknown"
+	buildUser = "unknown"
 )
 
 func main() {
@@ -12,6 +19,7 @@ func main() {
 	remove := flag.Bool("r", false, "Remove mode (uninstall)")
 	force := flag.Bool("f", false, "Force overwrite existing files")
 	dryRun := flag.Bool("dry-run", false, "Preview changes without executing")
+	showVersion := flag.Bool("v", false, "Show version information")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "symlinkr - Manage symlinks from a YAML configuration\n\n")
@@ -19,9 +27,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  symlinkr [flags]\n\n")
 		fmt.Fprintf(os.Stderr, "Flags:\n")
 		fmt.Fprintf(os.Stderr, "  --config <path>    Config file path (default: symlinkr.yaml)\n")
-		fmt.Fprintf(os.Stderr, "  -r, --remove       Uninstall mode (remove all symlinks)\n")
-		fmt.Fprintf(os.Stderr, "  -f, --force        Force overwrite existing files\n")
-		fmt.Fprintf(os.Stderr, "  --dry-run          Preview changes without executing\n\n")
+		fmt.Fprintf(os.Stderr, "  -r                 Uninstall mode (remove all symlinks)\n")
+		fmt.Fprintf(os.Stderr, "  -f                 Force overwrite existing files\n")
+		fmt.Fprintf(os.Stderr, "  --dry-run          Preview changes without executing\n")
+		fmt.Fprintf(os.Stderr, "  -v                 Show version information\n\n")
 		fmt.Fprintf(os.Stderr, "Examples:\n")
 		fmt.Fprintf(os.Stderr, "  symlinkr                              # Apply config\n")
 		fmt.Fprintf(os.Stderr, "  symlinkr --dry-run                    # Preview changes\n")
@@ -32,6 +41,11 @@ func main() {
 	}
 
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("symlinkr %s (commit: %s, built at: %s by %s)\n", version, revision, date, buildUser)
+		os.Exit(0)
+	}
 
 	cfg, err := LoadConfig(*configPath)
 	if err != nil {
@@ -75,7 +89,8 @@ func runApplyMode(cfg *Config, force, dryRun bool, stats *Stats) error {
 		}
 
 		if err != nil {
-			if strings.HasPrefix(err.Error(), "⚠") {
+			var skipErr *SkipError
+			if errors.As(err, &skipErr) {
 				fmt.Println(err.Error())
 				stats.Skipped++
 			} else {
@@ -103,7 +118,7 @@ func runRemoveMode(cfg *Config, dryRun bool, stats *Stats) error {
 			fmt.Println(err.Error())
 			stats.Errors++
 		} else {
-			stats.Created++
+			stats.Removed++
 		}
 	}
 
@@ -112,10 +127,10 @@ func runRemoveMode(cfg *Config, dryRun bool, stats *Stats) error {
 
 func printSummary(stats Stats, dryRun bool) {
 	if dryRun {
-		fmt.Printf("\n[DRY-RUN] Summary: %d would create, %d would skip, %d would error\n",
-			stats.Created, stats.Skipped, stats.Errors)
+		fmt.Printf("\n[DRY-RUN] Summary: %d would create, %d would remove, %d would skip, %d would error\n",
+			stats.Created, stats.Removed, stats.Skipped, stats.Errors)
 	} else {
-		fmt.Printf("\nSummary: %d created, %d skipped, %d error\n",
-			stats.Created, stats.Skipped, stats.Errors)
+		fmt.Printf("\nSummary: %d created, %d removed, %d skipped, %d error\n",
+			stats.Created, stats.Removed, stats.Skipped, stats.Errors)
 	}
 }

@@ -8,19 +8,31 @@ import (
 
 type Stats struct {
 	Created int
+	Removed int
 	Skipped int
 	Errors  int
 }
 
+type SkipError struct {
+	Msg string
+}
+
+func (e *SkipError) Error() string {
+	return e.Msg
+}
+
 func CreateSymlink(source, dest string, force, dryRun bool) error {
 	if _, err := os.Lstat(source); os.IsNotExist(err) {
-		return fmt.Errorf("⚠ Skipped: source not found for %q", filepath.Base(source))
+		return &SkipError{Msg: fmt.Sprintf("⚠ Skipped: source not found for %q", filepath.Base(source))}
 	}
 
 	destInfo, err := os.Lstat(dest)
 	if err == nil {
 		if destInfo.Mode()&os.ModeSymlink != 0 {
-			link, _ := os.Readlink(dest)
+			link, err := os.Readlink(dest)
+			if err != nil {
+				return fmt.Errorf("✗ Error: failed to read symlink target %s: %w", dest, err)
+			}
 			if link == source {
 				return nil
 			}

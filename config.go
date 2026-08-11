@@ -84,8 +84,15 @@ func (c *Config) expandPaths() error {
 		return fmt.Errorf("failed to expand root_dir: %w", err)
 	}
 
+	cleanRoot := filepath.Clean(c.RootDir)
+
 	for i := range c.Symlinks {
-		c.Symlinks[i].Source = filepath.Join(c.RootDir, c.Symlinks[i].Source)
+		absSource := filepath.Clean(filepath.Join(cleanRoot, c.Symlinks[i].Source))
+		if !strings.HasPrefix(absSource, cleanRoot) {
+			return fmt.Errorf("source path escapes root_dir: %s", c.Symlinks[i].Source)
+		}
+		c.Symlinks[i].Source = absSource
+
 		c.Symlinks[i].Dest, err = expandPath(c.Symlinks[i].Dest)
 		if err != nil {
 			return fmt.Errorf("failed to expand destination path: %w", err)
@@ -104,12 +111,16 @@ func (c *Config) validate() error {
 }
 
 func expandPath(path string) (string, error) {
-	if strings.HasPrefix(path, "~") {
+	if path == "~" || strings.HasPrefix(path, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		path = filepath.Join(home, path[1:])
+		if path == "~" {
+			path = home
+		} else {
+			path = filepath.Join(home, strings.TrimPrefix(path, "~/"))
+		}
 	}
 
 	path = os.ExpandEnv(path)

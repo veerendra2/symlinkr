@@ -141,3 +141,56 @@ func TestSymlinkOperations(t *testing.T) {
 		}
 	})
 }
+
+func TestRecursiveSymlinkOperations(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	sourceDir := filepath.Join(tmpDir, "source")
+	subDir := filepath.Join(sourceDir, "sub")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	file1 := filepath.Join(sourceDir, "file1.txt")
+	file2 := filepath.Join(subDir, "file2.txt")
+	if err := os.WriteFile(file1, []byte("content1"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file2, []byte("content2"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	destDir := filepath.Join(tmpDir, "dest")
+
+	t.Run("create recursive", func(t *testing.T) {
+		err := CreateRecursive(sourceDir, destDir, false, false)
+		if err != nil {
+			t.Fatalf("CreateRecursive() error = %v", err)
+		}
+
+		destFile1 := filepath.Join(destDir, "file1.txt")
+		destFile2 := filepath.Join(destDir, "sub", "file2.txt")
+
+		info1, err := os.Lstat(destFile1)
+		if err != nil || info1.Mode()&os.ModeSymlink == 0 {
+			t.Errorf("expected %s to be symlink", destFile1)
+		}
+
+		info2, err := os.Lstat(destFile2)
+		if err != nil || info2.Mode()&os.ModeSymlink == 0 {
+			t.Errorf("expected %s to be symlink", destFile2)
+		}
+	})
+
+	t.Run("remove recursive", func(t *testing.T) {
+		err := RemoveRecursive(destDir, false)
+		if err != nil {
+			t.Fatalf("RemoveRecursive() error = %v", err)
+		}
+
+		destFile1 := filepath.Join(destDir, "file1.txt")
+		if _, err := os.Lstat(destFile1); !os.IsNotExist(err) {
+			t.Errorf("expected %s to be removed", destFile1)
+		}
+	})
+}

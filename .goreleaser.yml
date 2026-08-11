@@ -16,11 +16,11 @@ builds:
       - arm64
     main: .
     ldflags:
-      - "-X github.com/veerendra2/gopackages/version.Version={{.Version}}"
-      - "-X github.com/veerendra2/gopackages/version.Revision={{.ShortCommit}}"
-      - "-X github.com/veerendra2/gopackages/version.Branch={{.Branch}}"
-      - "-X github.com/veerendra2/gopackages/version.BuildUser={{envOrDefault 'USER' 'ci'}}"
-      - "-X github.com/veerendra2/gopackages/version.BuildDate={{.Date}}"
+      - "-X main.version={{.Version}}"
+      - "-X main.revision={{.ShortCommit}}"
+      - "-X main.date={{.Date}}"
+      - "-X main.buildUser={{envOrDefault 'USER' 'ci'}}"
+      - "-s -w"
 
 archives:
   - formats: ["zip"]
