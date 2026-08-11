@@ -119,7 +119,9 @@ func TestSymlinkOperations(t *testing.T) {
 	t.Run("skip existing correct symlink", func(t *testing.T) {
 		destFile := filepath.Join(tmpDir, "dest2.txt")
 
-		os.Symlink(sourceFile, destFile)
+		if err := os.Symlink(sourceFile, destFile); err != nil {
+			t.Fatal(err)
+		}
 
 		err := CreateSymlink(sourceFile, destFile, false, false)
 		if err != nil {
@@ -129,7 +131,9 @@ func TestSymlinkOperations(t *testing.T) {
 
 	t.Run("error on existing non-symlink without force", func(t *testing.T) {
 		destFile := filepath.Join(tmpDir, "dest3.txt")
-		os.WriteFile(destFile, []byte("existing"), 0644)
+		if err := os.WriteFile(destFile, []byte("existing"), 0644); err != nil {
+			t.Fatal(err)
+		}
 
 		err := CreateSymlink(sourceFile, destFile, false, false)
 		if err == nil {

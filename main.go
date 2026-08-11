@@ -10,9 +10,7 @@ import (
 func main() {
 	configPath := flag.String("config", "symlinkr.yaml", "Config file path")
 	remove := flag.Bool("r", false, "Remove mode (uninstall)")
-	removeAlt := flag.Bool("remove", false, "Remove mode (uninstall)")
 	force := flag.Bool("f", false, "Force overwrite existing files")
-	forceAlt := flag.Bool("force", false, "Force overwrite existing files")
 	dryRun := flag.Bool("dry-run", false, "Preview changes without executing")
 
 	flag.Usage = func() {
@@ -35,22 +33,20 @@ func main() {
 
 	flag.Parse()
 
-	removeMode := *remove || *removeAlt
-	forceMode := *force || *forceAlt
-
 	cfg, err := LoadConfig(*configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
 	}
 
+	forceMode := *force
 	if cfg.ForceOverwrite && !forceMode {
 		forceMode = true
 	}
 
 	stats := Stats{}
 
-	if removeMode {
+	if *remove {
 		if err := runRemoveMode(cfg, *dryRun, &stats); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)

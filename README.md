@@ -1,7 +1,3 @@
-<div align="center">
-  <img src="logo.png" alt="Symlinkr Logo" width="200"/>
-</div>
-
 # Symlinkr
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/veerendra2/symlinkr)](https://goreportcard.com/report/github.com/veerendra2/symlinkr)
@@ -9,15 +5,22 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/veerendra2/symlinkr)](go.mod)
 [![Build](https://github.com/veerendra2/symlinkr/actions/workflows/release.yml/badge.svg)](https://github.com/veerendra2/symlinkr/actions)
+[![Go Reference](https://pkg.go.dev/badge/github.com/veerendra2/symlinkr.svg)](https://pkg.go.dev/github.com/veerendra2/symlinkr)
+[![GitHub stars](https://img.shields.io/github/stars/veerendra2/symlinkr)](https://github.com/veerendra2/symlinkr/stargazers)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/veerendra2/symlinkr/graphs/commit-activity)
+
+<div align="center">
+  <img src="logo.png" alt="Symlinkr Logo" width="400"/>
+</div>
 
 A lightweight CLI tool to manage symlinks from a YAML configuration file.
 
-> _Declarative symlink management for dotfiles._
-> _"Inspired by mise dotfile"_
+> Declarative symlink management for dotfiles. - _"Inspired by mise dotfile"_
 
 ## Installation
 
 **Via Homebrew:**
+
 ```bash
 brew tap veerendra2/homebrew-tap
 brew install symlinkr

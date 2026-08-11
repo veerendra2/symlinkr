@@ -29,7 +29,9 @@ func CreateSymlink(source, dest string, force, dryRun bool) error {
 				fmt.Printf("[DRY-RUN] Would create symlink: %s -> %s\n", dest, source)
 				return nil
 			}
-			os.Remove(dest)
+			if err := os.Remove(dest); err != nil {
+				return fmt.Errorf("✗ Error: failed to remove old symlink: %w", err)
+			}
 		} else {
 			if !force {
 				return fmt.Errorf("✗ Error: %s exists and is not a symlink (use -f to force)", dest)
@@ -39,7 +41,10 @@ func CreateSymlink(source, dest string, force, dryRun bool) error {
 				fmt.Printf("[DRY-RUN] Would create symlink: %s -> %s\n", dest, source)
 				return nil
 			}
-			os.Rename(dest, dest+".bak")
+			backupPath := dest + ".bak"
+			if err := os.Rename(dest, backupPath); err != nil {
+				return fmt.Errorf("✗ Error: failed to backup file: %w", err)
+			}
 		}
 	}
 
@@ -151,7 +156,10 @@ func RemoveRecursive(destDir string, dryRun bool) error {
 				fmt.Printf("[DRY-RUN] Would remove empty directory: %s\n", dir)
 				continue
 			}
-			os.Remove(dir)
+			if err := os.Remove(dir); err != nil {
+				// Log but don't fail - cleanup is best-effort
+				fmt.Printf("⚠ Warning: could not remove directory %s: %v\n", dir, err)
+			}
 		}
 	}
 
