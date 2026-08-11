@@ -3,7 +3,7 @@ version: "3"
 silent: true
 
 vars:
-  MAIN_FILE: ./main.go
+  MAIN_FILE: .
   APP_NAME: symlinkr
   GOPATH_BIN:
     sh: echo "$(go env GOPATH)/bin"
