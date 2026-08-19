@@ -3,8 +3,8 @@ version: "3"
 silent: true
 
 vars:
-  MAIN_FILE: /path/to/main.go
-  APP_NAME: your-app-name
+  MAIN_FILE: .
+  APP_NAME: symlinkr
   GOPATH_BIN:
     sh: echo "$(go env GOPATH)/bin"
   BRANCH:
@@ -28,7 +28,7 @@ tasks:
     deps:
       - vet
     cmds:
-      - go run {{.MAIN_FILE}}
+      - go run . {{.CLI_ARGS}}
     env:
       LOG_FORMAT: console
       LOG_ADD_SOURCE: false
@@ -66,12 +66,11 @@ tasks:
       - vet
     cmd: |
       go build -ldflags "\
-        -X github.com/veerendra2/gopackages/version.Version={{.VERSION}} \
-        -X github.com/veerendra2/gopackages/version.Revision={{.REVISION}} \
-        -X github.com/veerendra2/gopackages/version.Branch={{.BRANCH}} \
-        -X github.com/veerendra2/gopackages/version.BuildUser={{.BUILD_USER}} \
-        -X github.com/veerendra2/gopackages/version.BuildDate={{.BUILD_TIME}}" \
-        -o dist/{{.APP_NAME}} {{.MAIN_FILE}}
+        -X main.version={{.VERSION}} \
+        -X main.revision={{.REVISION}} \
+        -X main.buildUser={{.BUILD_USER}} \
+        -X main.date={{.BUILD_TIME}}" \
+        -o dist/{{.APP_NAME}} .
 
   build-platforms:
     desc: "Build the application binaries for multiple platforms and architectures"
@@ -84,17 +83,11 @@ tasks:
             ARCH: ["amd64", "arm64"]
         cmd: |
           GOOS={{.ITEM.OS}} GOARCH={{.ITEM.ARCH}} go build -ldflags "\
-            -X github.com/veerendra2/gopackages/version.Version={{.VERSION}} \
-            -X github.com/veerendra2/gopackages/version.Revision={{.REVISION}} \
-            -X github.com/veerendra2/gopackages/version.Branch={{.BRANCH}} \
-            -X github.com/veerendra2/gopackages/version.BuildUser={{.BUILD_USER}} \
-            -X github.com/veerendra2/gopackages/version.BuildDate={{.BUILD_TIME}}" \
-            -o dist/{{.APP_NAME}}-{{.ITEM.OS}}-{{.ITEM.ARCH}} {{.MAIN_FILE}}
-
-  build-docker:
-    desc: "Build Docker image"
-    cmds:
-      - docker build -t {{.APP_NAME}} .
+            -X main.version={{.VERSION}} \
+            -X main.revision={{.REVISION}} \
+            -X main.buildUser={{.BUILD_USER}} \
+            -X main.date={{.BUILD_TIME}}" \
+            -o dist/{{.APP_NAME}}-{{.ITEM.OS}}-{{.ITEM.ARCH}} .
 
   security:
     desc: "Run security vulnerability scan"

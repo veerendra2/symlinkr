@@ -3,17 +3,22 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/**"
 
 jobs:
   golangci-lint:
     name: Lint Source Code
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
           cache: true
@@ -23,17 +28,17 @@ jobs:
         with:
           version: latest
           working-directory: ./
-          args: --timeout 3m
+          args: --timeout 10m
 
   run-tests:
     name: Run Tests
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
           cache: true

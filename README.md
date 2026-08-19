@@ -1,73 +1,102 @@
-# Go Project Template
+# Symlinkr
 
-> Other references
->
-> - https://github.com/thockin/go-build-template/tree/master
-> - https://peter.bourgon.org/go-best-practices-2016/
+<p align="center">
+  <img src="logo.png" alt="Symlinkr Logo" width="300"/>
+  <br>
+</p>
+<p align="center">Declarative symlink manager</p>
 
-## Getting Started
+<p align="center">
+  <a href="https://github.com/veerendra2/symlinkr/actions"><img src="https://github.com/veerendra2/symlinkr/workflows/CI/badge.svg" alt="Build Status"></a>
+  <a href="https://goreportcard.com/report/github.com/veerendra2/symlinkr"><img src="https://goreportcard.com/badge/github.com/veerendra2/symlinkr" alt="Go Report Card"></a>
+  <a href="https://github.com/veerendra2/symlinkr/releases"><img src="https://img.shields.io/github/v/release/veerendra2/symlinkr" alt="Release"></a>
+  <a href="https://github.com/veerendra2/symlinkr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/veerendra2/symlinkr" alt="License"></a>
+  <a href="https://github.com/veerendra2/symlinkr/stargazers"><img src="https://img.shields.io/github/stars/veerendra2/symlinkr" alt="Stars"></a>
+  <a href="https://github.com/veerendra2/symlinkr/network/members"><img src="https://img.shields.io/github/forks/veerendra2/symlinkr" alt="Forks"></a>
+  <a href="https://github.com/veerendra2/homebrew-tap"><img src="https://img.shields.io/badge/homebrew-tap-blue?style=flat&logo=homebrew&logoColor=white" alt="Homebrew"></a>
+  <a href="https://github.com/veerendra2/symlinkr/releases"><img src="https://img.shields.io/badge/archs-amd64%20%7C%20arm64-blue?style=flat" alt="Architectures"></a>
+</p>
 
-Follow below steps after creating a new repository from this template
+> _Inspired by [mise dotfiles](https://mise.jdx.dev/dotfiles.html)_
 
-- [ ] **Initialize Go module:**
+## Installation
 
-  ```bash
-  go mod init github.com/YOUR_USERNAME/YOUR_PROJECT_NAME
-  go mod tidy
-  ```
-
-- [ ] **Update app name** in:
-
-  - [ ] [Taskfile.yml](./Taskfile.yml) - `APP_NAME` variable
-  - [ ] [Dockerfile](./Dockerfile) - Binary name and labels
-  - [ ] [main.go](./main.go) - `appName` constant
-  - [ ] [.goreleaser.yml](./.goreleaser.yml) - `project_name` and `binary` name
-  - [ ] [README.md](./README.md) - Title and description
-
-- [ ] **Update main file location** (if not using root `main.go`):
-
-  - [ ] [Taskfile.yml](./Taskfile.yml) - `MAIN_FILE` variable
-  - [ ] [.goreleaser.yml](./.goreleaser.yml) - `main` field under `builds`
-
-- [ ] **Configure Homebrew release** (optional):
-
-  > **Note:** GitHub's default `GITHUB_TOKEN` has limited permissions for tap repositories. See [GoReleaser docs](https://goreleaser.com/errors/resource-not-accessible-by-integration/).
-
-  - [ ] Add `RELEASE_TOKEN` in repository secrets and update in [release workflow](./.github/workflows/release.yml)
-  - [ ] Update [release workflow](./.github/workflows/release.yml) to use the new token
-  - [ ] Update [.goreleaser.yml](./.goreleaser.yml) `brews` section with your tap repository details
-
-- [ ] **Clean up:** Delete this checklist and update README with project documentation
-
-## Build & Test
-
-- Using [Taskfile](https://taskfile.dev/)
-
-_Install Taskfile: [Installation Guide](https://taskfile.dev/docs/installation)_
+**Via Homebrew:**
 
 ```bash
-# Available tasks
-task --list
-task: Available tasks for this project:
-* all:                   Run comprehensive checks: format, lint, security and test
-* build:                 Build the application binary for the current platform
-* build-docker:          Build Docker image
-* build-platforms:       Build the application binaries for multiple platforms and architectures
-* fmt:                   Formats all Go source files
-* install:               Install required tools and dependencies
-* lint:                  Run static analysis and code linting using golangci-lint
-* run:                   Runs the main application
-* security:              Run security vulnerability scan
-* test:                  Runs all tests in the project      (aliases: tests)
-* vet:                   Examines Go source code and reports suspicious constructs
+brew tap veerendra2/homebrew-tap
+brew install symlinkr
 ```
 
-- Build with [goreleaser](https://goreleaser.com/)
+**Or download from [GitHub Releases](https://github.com/veerendra2/symlinkr/releases)**
 
-_Install GoReleaser: [Installation Guide](https://goreleaser.com/install/)_
+## Usage
 
 ```bash
-# Build locally
-goreleaser release --snapshot --clean
-...
+symlinkr - Declarative symlink manager
+
+Usage:
+  symlinkr [flags]
+
+Flags:
+  --config <path>    Config file path (default: symlinkr.yaml)
+  -r                 Uninstall mode (remove all symlinks)
+  -f                 Force overwrite existing files
+  --dry-run          Preview changes without executing
+  -v                 Show version information
+
+Examples:
+  symlinkr                              # Apply config
+  symlinkr --dry-run                    # Preview changes
+  symlinkr --config ~/dotfiles.yaml     # Custom config
+  symlinkr -f                           # Force overwrite
+  symlinkr -r                           # Uninstall
+  symlinkr -r --dry-run                 # Preview uninstall
+```
+
+### Configuration
+
+Default configuration file is `symlinkr.yaml` in the current working directory.
+
+```yaml
+root_dir: "~/projects/dotfiles"
+force_overwrite: false
+
+symlinks:
+  - ~/.bashrc: bashrc
+  - ~/.gitconfig: gitconfig
+  - ~/.config/nvim: config/nvim
+    recursive: true
+```
+
+| Field                  | Type    | Required | Description                                                                                   |
+| :--------------------- | :------ | :------- | :-------------------------------------------------------------------------------------------- |
+| `root_dir`             | string  | Yes      | Base directory containing source files. Supports `~` and `$VAR` / `${VAR}`.                   |
+| `force_overwrite`      | boolean | No       | Remove and overwrite non-symlink targets. Overridden by `-f` flag (default: `false`). |
+| `symlinks`             | list    | Yes      | List of `destination: source` mappings. Supports `~` and env vars.                            |
+| `symlinks[].recursive` | boolean | No       | When `true`, mirrors directory tree with individual file symlinks (default: `false`).         |
+
+#### Recursive Behavior
+
+**Without `recursive`** - Creates single directory symlink:
+
+```
+~/.config/nvim -> ~/dotfiles/config/nvim
+```
+
+**With `recursive: true`** - Creates directory structure with individual file symlinks:
+
+```
+~/.config/nvim/init.lua -> ~/dotfiles/config/nvim/init.lua
+~/.config/nvim/lua/plugins.lua -> ~/dotfiles/config/nvim/lua/plugins.lua
+```
+
+## Development
+
+Build and test using [Taskfile](https://taskfile.dev/):
+
+```bash
+task build    # Build binary
+task test     # Run tests
+task lint     # Run linter
 ```

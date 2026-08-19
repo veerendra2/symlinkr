@@ -1,0 +1,12 @@
+root_dir: "~/projects/dotfiles"
+force_overwrite: false
+
+symlinks:
+  - ~/.bashrc: bashrc
+  - ~/.bash_profile: bash_profile
+  - ~/.gitconfig: gitconfig
+  - ~/.tmux.conf: tmux.conf
+  - ~/.config/nvim: config/nvim
+    recursive: true
+  - ~/.config/alacritty: config/alacritty
+    recursive: true
