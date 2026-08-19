@@ -27,6 +27,9 @@ func (s *Symlink) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	for i := 0; i < len(node.Content); i += 2 {
+		if i+1 >= len(node.Content) {
+			return fmt.Errorf("malformed symlink entry: odd number of mapping elements")
+		}
 		key := node.Content[i].Value
 		value := node.Content[i+1].Value
 
@@ -37,6 +40,8 @@ func (s *Symlink) UnmarshalYAML(node *yaml.Node) error {
 		} else if s.Dest == "" {
 			s.Dest = key
 			s.Source = value
+		} else {
+			return fmt.Errorf("symlink entry has multiple mappings: %q and %q", s.Dest, key)
 		}
 	}
 

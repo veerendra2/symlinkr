@@ -24,9 +24,13 @@ func (e *SkipError) Error() string {
 }
 
 func CreateSymlink(source, dest string, force, dryRun bool, stats *Stats) error {
-	if _, err := os.Lstat(source); os.IsNotExist(err) {
-		stats.Skipped++
-		return &SkipError{Msg: fmt.Sprintf("[skip]    %s (source not found: %q)", dest, filepath.Base(source))}
+	if _, err := os.Lstat(source); err != nil {
+		if os.IsNotExist(err) {
+			stats.Skipped++
+			return &SkipError{Msg: fmt.Sprintf("[skip]    %s (source not found: %q)", dest, filepath.Base(source))}
+		}
+		stats.Errors++
+		return fmt.Errorf("[error]   %s (failed to access source: %w)", source, err)
 	}
 
 	destInfo, err := os.Lstat(dest)
@@ -37,7 +41,12 @@ func CreateSymlink(source, dest string, force, dryRun bool, stats *Stats) error 
 				stats.Errors++
 				return fmt.Errorf("[error]   %s (failed to read symlink target: %w)", dest, err)
 			}
-			if link == source {
+			// Resolve relative symlink targets before comparing
+			linkAbs := link
+			if !filepath.IsAbs(link) {
+				linkAbs = filepath.Clean(filepath.Join(filepath.Dir(dest), link))
+			}
+			if linkAbs == source {
 				return nil
 			}
 			if dryRun {
@@ -110,12 +119,17 @@ func CreateRecursive(sourceDir, destDir string, force, dryRun bool, stats *Stats
 				fmt.Printf("[dry-run] Would create directory: %s\n", destPath)
 				return nil
 			}
-			return os.MkdirAll(destPath, 0755)
+			if err := os.MkdirAll(destPath, 0755); err != nil {
+				stats.Errors++
+				return err
+			}
+			return nil
 		}
 
 		err = CreateSymlink(path, destPath, force, dryRun, stats)
 		if err != nil {
 			fmt.Println(err.Error())
+			// Continue walking — stats.Errors already incremented inside CreateSymlink
 		}
 		return nil
 	})
@@ -198,7 +212,8 @@ func RemoveRecursive(destDir string, dryRun bool, stats *Stats) error {
 				continue
 			}
 			if err := os.Remove(dir); err != nil {
-				fmt.Printf("[skip]    Could not remove directory %s: %v\n", dir, err)
+				stats.Errors++
+				fmt.Printf("[error]   Could not remove directory %s: %v\n", dir, err)
 			}
 		}
 	}
