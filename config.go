@@ -31,12 +31,10 @@ func (s *Symlink) UnmarshalYAML(node *yaml.Node) error {
 		value := node.Content[i+1].Value
 
 		if key == "recursive" {
-			if value == "true" {
-				s.Recursive = true
-			}
-		} else if s.Source == "" {
-			s.Source = key
-			s.Dest = value
+			_ = node.Content[i+1].Decode(&s.Recursive)
+		} else if s.Dest == "" {
+			s.Dest = key
+			s.Source = value
 		}
 	}
 
@@ -88,7 +86,8 @@ func (c *Config) expandPaths() error {
 
 	for i := range c.Symlinks {
 		absSource := filepath.Clean(filepath.Join(cleanRoot, c.Symlinks[i].Source))
-		if !strings.HasPrefix(absSource, cleanRoot) {
+		rel, err := filepath.Rel(cleanRoot, absSource)
+		if err != nil || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
 			return fmt.Errorf("source path escapes root_dir: %s", c.Symlinks[i].Source)
 		}
 		c.Symlinks[i].Source = absSource

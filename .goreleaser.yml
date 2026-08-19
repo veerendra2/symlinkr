@@ -48,5 +48,5 @@ brews:
       token: "{{ .Env.GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/veerendra2/symlinkr"
-    description: "Declarative symlink management for dotfiles."
+    description: "Declarative symlink manager."
     license: "Apache"

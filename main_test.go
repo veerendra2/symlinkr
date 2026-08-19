@@ -58,8 +58,8 @@ func TestConfigParsing(t *testing.T) {
 force_overwrite: false
 
 symlinks:
-  - bashrc: ~/.bashrc
-  - config/nvim: ~/.config/nvim
+  - ~/.bashrc: bashrc
+  - ~/.config/nvim: config/nvim
     recursive: true
 `
 
@@ -88,6 +88,22 @@ symlinks:
 	if cfg.Symlinks[1].Recursive != true {
 		t.Errorf("Symlinks[1].Recursive = %v, want true", cfg.Symlinks[1].Recursive)
 	}
+
+	t.Run("reject path traversal", func(t *testing.T) {
+		traversalConfig := `root_dir: ` + rootDir + `
+symlinks:
+  - ~/.evil: ../outside
+`
+		configPath := filepath.Join(tmpDir, "traversal.yaml")
+		if err := os.WriteFile(configPath, []byte(traversalConfig), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := LoadConfig(configPath)
+		if err == nil {
+			t.Error("LoadConfig() expected error for path traversal, got nil")
+		}
+	})
 }
 
 func TestSymlinkOperations(t *testing.T) {
@@ -100,8 +116,9 @@ func TestSymlinkOperations(t *testing.T) {
 
 	t.Run("create symlink", func(t *testing.T) {
 		destFile := filepath.Join(tmpDir, "dest.txt")
+		stats := &Stats{}
 
-		err := CreateSymlink(sourceFile, destFile, false, false)
+		err := CreateSymlink(sourceFile, destFile, false, false, stats)
 		if err != nil {
 			t.Fatalf("CreateSymlink() error = %v", err)
 		}
@@ -114,30 +131,60 @@ func TestSymlinkOperations(t *testing.T) {
 		if info.Mode()&os.ModeSymlink == 0 {
 			t.Error("destination is not a symlink")
 		}
+
+		if stats.Created != 1 {
+			t.Errorf("stats.Created = %d, want 1", stats.Created)
+		}
 	})
 
 	t.Run("skip existing correct symlink", func(t *testing.T) {
 		destFile := filepath.Join(tmpDir, "dest2.txt")
+		stats := &Stats{}
 
 		if err := os.Symlink(sourceFile, destFile); err != nil {
 			t.Fatal(err)
 		}
 
-		err := CreateSymlink(sourceFile, destFile, false, false)
+		err := CreateSymlink(sourceFile, destFile, false, false, stats)
 		if err != nil {
 			t.Fatalf("CreateSymlink() error = %v", err)
 		}
 	})
 
-	t.Run("error on existing non-symlink without force", func(t *testing.T) {
+	t.Run("skip on existing non-symlink without force", func(t *testing.T) {
 		destFile := filepath.Join(tmpDir, "dest3.txt")
 		if err := os.WriteFile(destFile, []byte("existing"), 0644); err != nil {
 			t.Fatal(err)
 		}
+		stats := &Stats{}
 
-		err := CreateSymlink(sourceFile, destFile, false, false)
+		err := CreateSymlink(sourceFile, destFile, false, false, stats)
 		if err == nil {
-			t.Error("CreateSymlink() expected error for existing non-symlink, got nil")
+			t.Error("CreateSymlink() expected skip error for existing non-symlink, got nil")
+		}
+		if stats.Skipped != 1 || stats.Exists != 1 {
+			t.Errorf("stats.Skipped = %d, stats.Exists = %d, want 1, 1", stats.Skipped, stats.Exists)
+		}
+	})
+
+	t.Run("overwrite existing non-symlink with force", func(t *testing.T) {
+		destFile := filepath.Join(tmpDir, "dest4.txt")
+		if err := os.WriteFile(destFile, []byte("existing"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		stats := &Stats{}
+
+		err := CreateSymlink(sourceFile, destFile, true, false, stats)
+		if err != nil {
+			t.Fatalf("CreateSymlink() error = %v", err)
+		}
+
+		info, err := os.Lstat(destFile)
+		if err != nil || info.Mode()&os.ModeSymlink == 0 {
+			t.Errorf("expected %s to be symlink after force overwrite", destFile)
+		}
+		if stats.Created != 1 {
+			t.Errorf("stats.Created = %d, want 1", stats.Created)
 		}
 	})
 }
@@ -163,7 +210,8 @@ func TestRecursiveSymlinkOperations(t *testing.T) {
 	destDir := filepath.Join(tmpDir, "dest")
 
 	t.Run("create recursive", func(t *testing.T) {
-		err := CreateRecursive(sourceDir, destDir, false, false)
+		stats := &Stats{}
+		err := CreateRecursive(sourceDir, destDir, false, false, stats)
 		if err != nil {
 			t.Fatalf("CreateRecursive() error = %v", err)
 		}
@@ -180,10 +228,15 @@ func TestRecursiveSymlinkOperations(t *testing.T) {
 		if err != nil || info2.Mode()&os.ModeSymlink == 0 {
 			t.Errorf("expected %s to be symlink", destFile2)
 		}
+
+		if stats.Created != 2 {
+			t.Errorf("stats.Created = %d, want 2", stats.Created)
+		}
 	})
 
 	t.Run("remove recursive", func(t *testing.T) {
-		err := RemoveRecursive(destDir, false)
+		stats := &Stats{}
+		err := RemoveRecursive(destDir, false, stats)
 		if err != nil {
 			t.Fatalf("RemoveRecursive() error = %v", err)
 		}
@@ -191,6 +244,10 @@ func TestRecursiveSymlinkOperations(t *testing.T) {
 		destFile1 := filepath.Join(destDir, "file1.txt")
 		if _, err := os.Lstat(destFile1); !os.IsNotExist(err) {
 			t.Errorf("expected %s to be removed", destFile1)
+		}
+
+		if stats.Removed != 2 {
+			t.Errorf("stats.Removed = %d, want 2", stats.Removed)
 		}
 	})
 }

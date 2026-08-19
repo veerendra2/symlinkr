@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -11,6 +12,7 @@ type Stats struct {
 	Removed int
 	Skipped int
 	Errors  int
+	Exists  int
 }
 
 type SkipError struct {
@@ -21,9 +23,10 @@ func (e *SkipError) Error() string {
 	return e.Msg
 }
 
-func CreateSymlink(source, dest string, force, dryRun bool) error {
+func CreateSymlink(source, dest string, force, dryRun bool, stats *Stats) error {
 	if _, err := os.Lstat(source); os.IsNotExist(err) {
-		return &SkipError{Msg: fmt.Sprintf("⚠ Skipped: source not found for %q", filepath.Base(source))}
+		stats.Skipped++
+		return &SkipError{Msg: fmt.Sprintf("[skip]    %s (source not found: %q)", dest, filepath.Base(source))}
 	}
 
 	destInfo, err := os.Lstat(dest)
@@ -31,54 +34,64 @@ func CreateSymlink(source, dest string, force, dryRun bool) error {
 		if destInfo.Mode()&os.ModeSymlink != 0 {
 			link, err := os.Readlink(dest)
 			if err != nil {
-				return fmt.Errorf("✗ Error: failed to read symlink target %s: %w", dest, err)
+				stats.Errors++
+				return fmt.Errorf("[error]   %s (failed to read symlink target: %w)", dest, err)
 			}
 			if link == source {
 				return nil
 			}
 			if dryRun {
-				fmt.Printf("[DRY-RUN] Would remove old symlink: %s\n", dest)
-				fmt.Printf("[DRY-RUN] Would create symlink: %s -> %s\n", dest, source)
+				fmt.Printf("[dry-run] Would remove old symlink: %s\n", dest)
+				fmt.Printf("[dry-run] Would create symlink: %s -> %s\n", dest, source)
+				stats.Created++
 				return nil
 			}
 			if err := os.Remove(dest); err != nil {
-				return fmt.Errorf("✗ Error: failed to remove old symlink: %w", err)
+				stats.Errors++
+				return fmt.Errorf("[error]   %s (failed to remove old symlink: %w)", dest, err)
 			}
 		} else {
 			if !force {
-				return fmt.Errorf("✗ Error: %s exists and is not a symlink (use -f to force)", dest)
+				stats.Skipped++
+				stats.Exists++
+				return &SkipError{Msg: fmt.Sprintf("[skip]    %s (already exists)", dest)}
 			}
 			if dryRun {
-				fmt.Printf("[DRY-RUN] Would backup: %s to %s.bak\n", dest, dest)
-				fmt.Printf("[DRY-RUN] Would create symlink: %s -> %s\n", dest, source)
+				fmt.Printf("[dry-run] Would remove existing file: %s\n", dest)
+				fmt.Printf("[dry-run] Would create symlink: %s -> %s\n", dest, source)
+				stats.Created++
 				return nil
 			}
-			backupPath := dest + ".bak"
-			if err := os.Rename(dest, backupPath); err != nil {
-				return fmt.Errorf("✗ Error: failed to backup file: %w", err)
+			if err := os.RemoveAll(dest); err != nil {
+				stats.Errors++
+				return fmt.Errorf("[error]   %s (failed to remove existing file: %w)", dest, err)
 			}
 		}
 	}
 
 	if dryRun {
-		fmt.Printf("[DRY-RUN] Would create symlink: %s -> %s\n", dest, source)
+		fmt.Printf("[dry-run] Would create symlink: %s -> %s\n", dest, source)
+		stats.Created++
 		return nil
 	}
 
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-		return fmt.Errorf("✗ Error: failed to create parent directory: %w", err)
+		stats.Errors++
+		return fmt.Errorf("[error]   %s (failed to create parent directory: %w)", dest, err)
 	}
 
 	if err := os.Symlink(source, dest); err != nil {
-		return fmt.Errorf("✗ Error: failed to create symlink: %w", err)
+		stats.Errors++
+		return fmt.Errorf("[error]   %s (failed to create symlink: %w)", dest, err)
 	}
 
-	fmt.Printf("✓ Created: %s -> %s\n", dest, source)
+	fmt.Printf("[created] %s -> %s\n", dest, source)
+	stats.Created++
 	return nil
 }
 
-func CreateRecursive(sourceDir, destDir string, force, dryRun bool) error {
-	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
+func CreateRecursive(sourceDir, destDir string, force, dryRun bool, stats *Stats) error {
+	return filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -90,24 +103,29 @@ func CreateRecursive(sourceDir, destDir string, force, dryRun bool) error {
 
 		destPath := filepath.Join(destDir, relPath)
 
-		if info.IsDir() {
+		if d.IsDir() {
 			if dryRun {
-				fmt.Printf("[DRY-RUN] Would create directory: %s\n", destPath)
+				fmt.Printf("[dry-run] Would create directory: %s\n", destPath)
 				return nil
 			}
 			return os.MkdirAll(destPath, 0755)
 		}
 
-		return CreateSymlink(path, destPath, force, dryRun)
+		err = CreateSymlink(path, destPath, force, dryRun, stats)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		return nil
 	})
 }
 
-func RemoveSymlink(path string, dryRun bool) error {
+func RemoveSymlink(path string, dryRun bool, stats *Stats) error {
 	info, err := os.Lstat(path)
 	if os.IsNotExist(err) {
 		return nil
 	}
 	if err != nil {
+		stats.Errors++
 		return err
 	}
 
@@ -116,30 +134,33 @@ func RemoveSymlink(path string, dryRun bool) error {
 	}
 
 	if dryRun {
-		fmt.Printf("[DRY-RUN] Would remove symlink: %s\n", path)
+		fmt.Printf("[dry-run] Would remove symlink: %s\n", path)
+		stats.Removed++
 		return nil
 	}
 
 	if err := os.Remove(path); err != nil {
-		return fmt.Errorf("✗ Error: failed to remove symlink: %w", err)
+		stats.Errors++
+		return fmt.Errorf("[error]   %s (failed to remove symlink: %w)", path, err)
 	}
 
-	fmt.Printf("✓ Removed: %s\n", path)
+	fmt.Printf("[removed] %s\n", path)
+	stats.Removed++
 	return nil
 }
 
-func RemoveRecursive(destDir string, dryRun bool) error {
+func RemoveRecursive(destDir string, dryRun bool, stats *Stats) error {
 	var symlinks []string
 	var dirs []string
 
-	err := filepath.Walk(destDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(destDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
 
-		if info.Mode()&os.ModeSymlink != 0 {
+		if d.Type()&os.ModeSymlink != 0 {
 			symlinks = append(symlinks, path)
-		} else if info.IsDir() && path != destDir {
+		} else if d.IsDir() && path != destDir {
 			dirs = append(dirs, path)
 		}
 
@@ -151,8 +172,8 @@ func RemoveRecursive(destDir string, dryRun bool) error {
 	}
 
 	for _, link := range symlinks {
-		if err := RemoveSymlink(link, dryRun); err != nil {
-			return err
+		if err := RemoveSymlink(link, dryRun, stats); err != nil {
+			fmt.Println(err.Error())
 		}
 	}
 
@@ -165,12 +186,11 @@ func RemoveRecursive(destDir string, dryRun bool) error {
 
 		if len(entries) == 0 {
 			if dryRun {
-				fmt.Printf("[DRY-RUN] Would remove empty directory: %s\n", dir)
+				fmt.Printf("[dry-run] Would remove empty directory: %s\n", dir)
 				continue
 			}
 			if err := os.Remove(dir); err != nil {
-				// Log but don't fail - cleanup is best-effort
-				fmt.Printf("⚠ Warning: could not remove directory %s: %v\n", dir, err)
+				fmt.Printf("[skip]    Could not remove directory %s: %v\n", dir, err)
 			}
 		}
 	}

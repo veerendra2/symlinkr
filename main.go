@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -22,7 +21,7 @@ func main() {
 	showVersion := flag.Bool("v", false, "Show version information")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "symlinkr - Manage symlinks from a YAML configuration\n\n")
+		fmt.Fprintf(os.Stderr, "symlinkr - Declarative symlink manager\n\n")
 		fmt.Fprintf(os.Stderr, "Usage:\n")
 		fmt.Fprintf(os.Stderr, "  symlinkr [flags]\n\n")
 		fmt.Fprintf(os.Stderr, "Flags:\n")
@@ -83,22 +82,13 @@ func runApplyMode(cfg *Config, force, dryRun bool, stats *Stats) error {
 	for _, symlink := range cfg.Symlinks {
 		var err error
 		if symlink.Recursive {
-			err = CreateRecursive(symlink.Source, symlink.Dest, force, dryRun)
+			err = CreateRecursive(symlink.Source, symlink.Dest, force, dryRun, stats)
 		} else {
-			err = CreateSymlink(symlink.Source, symlink.Dest, force, dryRun)
+			err = CreateSymlink(symlink.Source, symlink.Dest, force, dryRun, stats)
 		}
 
 		if err != nil {
-			var skipErr *SkipError
-			if errors.As(err, &skipErr) {
-				fmt.Println(err.Error())
-				stats.Skipped++
-			} else {
-				fmt.Println(err.Error())
-				stats.Errors++
-			}
-		} else {
-			stats.Created++
+			fmt.Println(err.Error())
 		}
 	}
 
@@ -109,16 +99,13 @@ func runRemoveMode(cfg *Config, dryRun bool, stats *Stats) error {
 	for _, symlink := range cfg.Symlinks {
 		var err error
 		if symlink.Recursive {
-			err = RemoveRecursive(symlink.Dest, dryRun)
+			err = RemoveRecursive(symlink.Dest, dryRun, stats)
 		} else {
-			err = RemoveSymlink(symlink.Dest, dryRun)
+			err = RemoveSymlink(symlink.Dest, dryRun, stats)
 		}
 
 		if err != nil {
 			fmt.Println(err.Error())
-			stats.Errors++
-		} else {
-			stats.Removed++
 		}
 	}
 
@@ -127,10 +114,14 @@ func runRemoveMode(cfg *Config, dryRun bool, stats *Stats) error {
 
 func printSummary(stats Stats, dryRun bool) {
 	if dryRun {
-		fmt.Printf("\n[DRY-RUN] Summary: %d would create, %d would remove, %d would skip, %d would error\n",
+		fmt.Printf("\nSummary: %d would create, %d would remove, %d would skip, %d would error\n",
 			stats.Created, stats.Removed, stats.Skipped, stats.Errors)
 	} else {
 		fmt.Printf("\nSummary: %d created, %d removed, %d skipped, %d error\n",
 			stats.Created, stats.Removed, stats.Skipped, stats.Errors)
+	}
+
+	if stats.Exists > 0 {
+		fmt.Println("Tip: Use -f to overwrite existing files")
 	}
 }

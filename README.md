@@ -1,21 +1,23 @@
 # Symlinkr
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/veerendra2/symlinkr)](https://goreportcard.com/report/github.com/veerendra2/symlinkr)
-[![Release](https://img.shields.io/github/v/release/veerendra2/symlinkr)](https://github.com/veerendra2/symlinkr/releases)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/veerendra2/symlinkr)](go.mod)
-[![Build](https://github.com/veerendra2/symlinkr/actions/workflows/release.yml/badge.svg)](https://github.com/veerendra2/symlinkr/actions)
-[![Go Reference](https://pkg.go.dev/badge/github.com/veerendra2/symlinkr.svg)](https://pkg.go.dev/github.com/veerendra2/symlinkr)
-[![GitHub stars](https://img.shields.io/github/stars/veerendra2/symlinkr)](https://github.com/veerendra2/symlinkr/stargazers)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/veerendra2/symlinkr/graphs/commit-activity)
+<p align="center">
+  <img src="logo.png" alt="Symlinkr Logo" width="300"/>
+  <br>
+</p>
+<p align="center">Declarative symlink manager</p>
 
-<div align="center">
-  <img src="logo.png" alt="Symlinkr Logo" width="400"/>
-</div>
+<p align="center">
+  <a href="https://github.com/veerendra2/symlinkr/actions"><img src="https://github.com/veerendra2/symlinkr/workflows/CI/badge.svg" alt="Build Status"></a>
+  <a href="https://goreportcard.com/report/github.com/veerendra2/symlinkr"><img src="https://goreportcard.com/badge/github.com/veerendra2/symlinkr" alt="Go Report Card"></a>
+  <a href="https://github.com/veerendra2/symlinkr/releases"><img src="https://img.shields.io/github/v/release/veerendra2/symlinkr" alt="Release"></a>
+  <a href="https://github.com/veerendra2/symlinkr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/veerendra2/symlinkr" alt="License"></a>
+  <a href="https://github.com/veerendra2/symlinkr/stargazers"><img src="https://img.shields.io/github/stars/veerendra2/symlinkr" alt="Stars"></a>
+  <a href="https://github.com/veerendra2/symlinkr/network/members"><img src="https://img.shields.io/github/forks/veerendra2/symlinkr" alt="Forks"></a>
+  <a href="https://github.com/veerendra2/homebrew-tap"><img src="https://img.shields.io/badge/homebrew-tap-blue?style=flat&logo=homebrew&logoColor=white" alt="Homebrew"></a>
+  <a href="https://github.com/veerendra2/symlinkr/releases"><img src="https://img.shields.io/badge/archs-amd64%20%7C%20arm64-blue?style=flat" alt="Architectures"></a>
+</p>
 
-A lightweight CLI tool to manage symlinks from a YAML configuration file.
-
-> Declarative symlink management for dotfiles. - _"Inspired by mise dotfile"_
+> _Inspired by [mise dotfiles](https://mise.jdx.dev/dotfiles.html)_
 
 ## Installation
 
@@ -31,7 +33,7 @@ brew install symlinkr
 ## Usage
 
 ```bash
-symlinkr - Manage symlinks from a YAML configuration
+symlinkr - Declarative symlink manager
 
 Usage:
   symlinkr [flags]
@@ -52,31 +54,29 @@ Examples:
   symlinkr -r --dry-run                 # Preview uninstall
 ```
 
-Create a `symlinkr.yaml` config file:
+### Configuration
+
+Default configuration file is `symlinkr.yaml` in the current working directory.
 
 ```yaml
 root_dir: "~/projects/dotfiles"
 force_overwrite: false
 
 symlinks:
-  - bashrc: ~/.bashrc
-  - gitconfig: ~/.gitconfig
-  - config/nvim: ~/.config/nvim
+  - ~/.bashrc: bashrc
+  - ~/.gitconfig: gitconfig
+  - ~/.config/nvim: config/nvim
     recursive: true
 ```
 
-### Configuration
+| Field                  | Type    | Required | Description                                                                                   |
+| :--------------------- | :------ | :------- | :-------------------------------------------------------------------------------------------- |
+| `root_dir`             | string  | Yes      | Base directory containing source files. Supports `~` and `$VAR` / `${VAR}`.                   |
+| `force_overwrite`      | boolean | No       | Overwrite non-symlink targets with `.bak` backup. Overridden by `-f` flag (default: `false`). |
+| `symlinks`             | list    | Yes      | List of `destination: source` mappings. Supports `~` and env vars.                            |
+| `symlinks[].recursive` | boolean | No       | When `true`, mirrors directory tree with individual file symlinks (default: `false`).         |
 
-**`root_dir`** (required) - Base directory containing source files
-
-**`force_overwrite`** (optional) - Overwrite existing non-symlink files (creates `.bak` backup)
-
-**`symlinks`** (required) - List of symlink mappings:
-
-- Simple mapping: `source: destination`
-- Recursive: adds `recursive: true` to mirror directory structure
-
-### Recursive Behavior
+#### Recursive Behavior
 
 **Without `recursive`** - Creates single directory symlink:
 
