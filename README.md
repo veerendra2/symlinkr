@@ -72,7 +72,7 @@ symlinks:
 | Field                  | Type    | Required | Description                                                                                   |
 | :--------------------- | :------ | :------- | :-------------------------------------------------------------------------------------------- |
 | `root_dir`             | string  | Yes      | Base directory containing source files. Supports `~` and `$VAR` / `${VAR}`.                   |
-| `force_overwrite`      | boolean | No       | Overwrite non-symlink targets with `.bak` backup. Overridden by `-f` flag (default: `false`). |
+| `force_overwrite`      | boolean | No       | Remove and overwrite non-symlink targets. Overridden by `-f` flag (default: `false`). |
 | `symlinks`             | list    | Yes      | List of `destination: source` mappings. Supports `~` and env vars.                            |
 | `symlinks[].recursive` | boolean | No       | When `true`, mirrors directory tree with individual file symlinks (default: `false`).         |
 

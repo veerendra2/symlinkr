@@ -35,6 +35,4 @@ jobs:
           version: latest
           args: release --clean
         env:
-          # Update this token if you are releasing binaries as Homebrew cask
-          # See https://goreleaser.com/errors/resource-not-accessible-by-integration/
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GORELEASER_TAP_TOKEN }}

@@ -31,7 +31,9 @@ func (s *Symlink) UnmarshalYAML(node *yaml.Node) error {
 		value := node.Content[i+1].Value
 
 		if key == "recursive" {
-			_ = node.Content[i+1].Decode(&s.Recursive)
+			if err := node.Content[i+1].Decode(&s.Recursive); err != nil {
+				return fmt.Errorf("invalid recursive value: %w", err)
+			}
 		} else if s.Dest == "" {
 			s.Dest = key
 			s.Source = value
@@ -102,8 +104,8 @@ func (c *Config) expandPaths() error {
 }
 
 func (c *Config) validate() error {
-	if _, err := os.Stat(c.RootDir); os.IsNotExist(err) {
-		return fmt.Errorf("root_dir does not exist: %s", c.RootDir)
+	if _, err := os.Stat(c.RootDir); err != nil {
+		return fmt.Errorf("cannot access root_dir %s: %w", c.RootDir, err)
 	}
 
 	return nil

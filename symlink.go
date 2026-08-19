@@ -91,13 +91,15 @@ func CreateSymlink(source, dest string, force, dryRun bool, stats *Stats) error 
 }
 
 func CreateRecursive(sourceDir, destDir string, force, dryRun bool, stats *Stats) error {
-	return filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
+			stats.Errors++
 			return err
 		}
 
 		relPath, err := filepath.Rel(sourceDir, path)
 		if err != nil {
+			stats.Errors++
 			return err
 		}
 
@@ -117,6 +119,11 @@ func CreateRecursive(sourceDir, destDir string, force, dryRun bool, stats *Stats
 		}
 		return nil
 	})
+
+	if err != nil {
+		return fmt.Errorf("failed to process recursive symlinks: %w", err)
+	}
+	return nil
 }
 
 func RemoveSymlink(path string, dryRun bool, stats *Stats) error {
@@ -168,7 +175,8 @@ func RemoveRecursive(destDir string, dryRun bool, stats *Stats) error {
 	})
 
 	if err != nil {
-		return err
+		stats.Errors++
+		return fmt.Errorf("failed to scan directory for removal: %w", err)
 	}
 
 	for _, link := range symlinks {

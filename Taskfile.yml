@@ -68,7 +68,6 @@ tasks:
       go build -ldflags "\
         -X main.version={{.VERSION}} \
         -X main.revision={{.REVISION}} \
-        -X main.branch={{.BRANCH}} \
         -X main.buildUser={{.BUILD_USER}} \
         -X main.date={{.BUILD_TIME}}" \
         -o dist/{{.APP_NAME}} .
@@ -86,7 +85,6 @@ tasks:
           GOOS={{.ITEM.OS}} GOARCH={{.ITEM.ARCH}} go build -ldflags "\
             -X main.version={{.VERSION}} \
             -X main.revision={{.REVISION}} \
-            -X main.branch={{.BRANCH}} \
             -X main.buildUser={{.BUILD_USER}} \
             -X main.date={{.BUILD_TIME}}" \
             -o dist/{{.APP_NAME}}-{{.ITEM.OS}}-{{.ITEM.ARCH}} .
