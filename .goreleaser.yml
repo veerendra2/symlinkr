@@ -19,7 +19,7 @@ builds:
       - "-X main.version={{.Version}}"
       - "-X main.revision={{.ShortCommit}}"
       - "-X main.date={{.Date}}"
-      - "-X main.buildUser={{envOrDefault 'USER' 'ci'}}"
+      - '-X main.buildUser={{envOrDefault "USER" "ci"}}'
       - "-s -w"
 
 archives:
