@@ -99,7 +99,7 @@ func runRemoveMode(cfg *Config, dryRun bool, stats *Stats) error {
 	for _, symlink := range cfg.Symlinks {
 		var err error
 		if symlink.Recursive {
-			err = RemoveRecursive(symlink.Dest, dryRun, stats)
+			err = RemoveRecursive(symlink.Source, symlink.Dest, dryRun, stats)
 		} else {
 			err = RemoveSymlink(symlink.Dest, dryRun, stats)
 		}
