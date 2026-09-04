@@ -236,7 +236,7 @@ func TestRecursiveSymlinkOperations(t *testing.T) {
 
 	t.Run("remove recursive", func(t *testing.T) {
 		stats := &Stats{}
-		err := RemoveRecursive(destDir, false, stats)
+		err := RemoveRecursive(sourceDir, destDir, false, stats)
 		if err != nil {
 			t.Fatalf("RemoveRecursive() error = %v", err)
 		}
@@ -250,4 +250,62 @@ func TestRecursiveSymlinkOperations(t *testing.T) {
 			t.Errorf("stats.Removed = %d, want 2", stats.Removed)
 		}
 	})
+}
+
+func TestRemoveRecursivePreservesUnmanagedSymlinks(t *testing.T) {
+	tmpDir := t.TempDir()
+	sourceDir := filepath.Join(tmpDir, "source")
+	destDir := filepath.Join(tmpDir, "dest")
+	if err := os.MkdirAll(filepath.Join(sourceDir, "empty"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	sourceFile := filepath.Join(sourceDir, "managed")
+	if err := os.WriteFile(sourceFile, []byte("managed"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	replacedSource := filepath.Join(sourceDir, "replaced")
+	if err := os.WriteFile(replacedSource, []byte("replaced"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	unmanagedSource := filepath.Join(tmpDir, "unmanaged")
+	if err := os.WriteFile(unmanagedSource, []byte("unmanaged"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := CreateRecursive(sourceDir, destDir, false, false, &Stats{}); err != nil {
+		t.Fatal(err)
+	}
+	replacedLink := filepath.Join(destDir, "replaced")
+	if err := os.Remove(replacedLink); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(unmanagedSource, replacedLink); err != nil {
+		t.Fatal(err)
+	}
+	unmanagedLink := filepath.Join(destDir, "unmanaged")
+	if err := os.Symlink(unmanagedSource, unmanagedLink); err != nil {
+		t.Fatal(err)
+	}
+
+	stats := &Stats{}
+	if err := RemoveRecursive(sourceDir, destDir, false, stats); err != nil {
+		t.Fatalf("RemoveRecursive() error = %v", err)
+	}
+
+	if _, err := os.Lstat(filepath.Join(destDir, "managed")); !os.IsNotExist(err) {
+		t.Error("managed symlink was not removed")
+	}
+	if _, err := os.Lstat(unmanagedLink); err != nil {
+		t.Errorf("unmanaged symlink was removed: %v", err)
+	}
+	if _, err := os.Lstat(replacedLink); err != nil {
+		t.Errorf("symlink with an unmanaged target was removed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(destDir, "empty")); err != nil {
+		t.Errorf("empty destination directory was removed: %v", err)
+	}
+	if stats.Removed != 1 {
+		t.Errorf("stats.Removed = %d, want 1", stats.Removed)
+	}
 }

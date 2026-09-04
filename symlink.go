@@ -170,19 +170,44 @@ func RemoveSymlink(path string, dryRun bool, stats *Stats) error {
 	return nil
 }
 
-func RemoveRecursive(destDir string, dryRun bool, stats *Stats) error {
+func RemoveRecursive(sourceDir, destDir string, dryRun bool, stats *Stats) error {
 	var symlinks []string
-	var dirs []string
 
-	err := filepath.WalkDir(destDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(sourceDir, path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(destDir, relPath)
+
+		if d.IsDir() {
 			return nil
 		}
 
-		if d.Type()&os.ModeSymlink != 0 {
-			symlinks = append(symlinks, path)
-		} else if d.IsDir() && path != destDir {
-			dirs = append(dirs, path)
+		info, err := os.Lstat(destPath)
+		if os.IsNotExist(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			return nil
+		}
+
+		link, err := os.Readlink(destPath)
+		if err != nil {
+			return err
+		}
+		if !filepath.IsAbs(link) {
+			link = filepath.Join(filepath.Dir(destPath), link)
+		}
+		if filepath.Clean(link) == filepath.Clean(path) {
+			symlinks = append(symlinks, destPath)
 		}
 
 		return nil
@@ -196,25 +221,6 @@ func RemoveRecursive(destDir string, dryRun bool, stats *Stats) error {
 	for _, link := range symlinks {
 		if err := RemoveSymlink(link, dryRun, stats); err != nil {
 			fmt.Println(err.Error())
-		}
-	}
-
-	for i := len(dirs) - 1; i >= 0; i-- {
-		dir := dirs[i]
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-
-		if len(entries) == 0 {
-			if dryRun {
-				fmt.Printf("[dry-run] Would remove empty directory: %s\n", dir)
-				continue
-			}
-			if err := os.Remove(dir); err != nil {
-				stats.Errors++
-				fmt.Printf("[error]   Could not remove directory %s: %v\n", dir, err)
-			}
 		}
 	}
 
