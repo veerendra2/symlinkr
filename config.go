@@ -53,7 +53,18 @@ func (s *Symlink) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func LoadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	var data []byte
+	var err error
+
+	// If config file doesn't exist, try symlinkr.yml as fallback
+	data, err = os.ReadFile(path)
+	if os.IsNotExist(err) {
+		ymlPath := strings.TrimSuffix(path, filepath.Ext(path)) + ".yml"
+		data, err = os.ReadFile(ymlPath)
+		if err == nil {
+			path = ymlPath
+		}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}

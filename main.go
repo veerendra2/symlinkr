@@ -15,6 +15,7 @@ var (
 
 func main() {
 	configPath := flag.String("config", "symlinkr.yaml", "Config file path")
+	configShort := flag.String("c", "", "Config file path (short flag)")
 	remove := flag.Bool("r", false, "Remove mode (uninstall)")
 	force := flag.Bool("f", false, "Force overwrite existing files")
 	dryRun := flag.Bool("dry-run", false, "Preview changes without executing")
@@ -26,6 +27,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  symlinkr [flags]\n\n")
 		fmt.Fprintf(os.Stderr, "Flags:\n")
 		fmt.Fprintf(os.Stderr, "  --config <path>    Config file path (default: symlinkr.yaml)\n")
+		fmt.Fprintf(os.Stderr, "  -c <path>         Config file path (short flag)\n")
 		fmt.Fprintf(os.Stderr, "  -r                 Uninstall mode (remove all symlinks)\n")
 		fmt.Fprintf(os.Stderr, "  -f                 Force overwrite existing files\n")
 		fmt.Fprintf(os.Stderr, "  --dry-run          Preview changes without executing\n")
@@ -40,6 +42,17 @@ func main() {
 	}
 
 	flag.Parse()
+
+	// Support both long and short config flags
+	if *configPath != "" && *configShort != "" {
+		fmt.Fprintln(os.Stderr, "Error: Cannot use both --config and -c flags")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if *configShort != "" {
+		configPath = configShort
+	}
 
 	if *showVersion {
 		fmt.Printf("symlinkr %s (commit: %s, built at: %s by %s)\n", version, revision, date, buildUser)
