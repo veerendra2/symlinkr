@@ -61,9 +61,6 @@ func LoadConfig(path string) (*Config, error) {
 	if os.IsNotExist(err) {
 		ymlPath := strings.TrimSuffix(path, filepath.Ext(path)) + ".yml"
 		data, err = os.ReadFile(ymlPath)
-		if err == nil {
-			path = ymlPath
-		}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
