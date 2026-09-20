@@ -14,7 +14,9 @@ var (
 )
 
 func main() {
-	configPath := flag.String("config", "symlinkr.yaml", "Config file path")
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Config file path")
+	flag.StringVar(&configPath, "c", "", "Config file path (shorthand)")
 	remove := flag.Bool("r", false, "Remove mode (uninstall)")
 	force := flag.Bool("f", false, "Force overwrite existing files")
 	dryRun := flag.Bool("dry-run", false, "Preview changes without executing")
@@ -25,11 +27,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage:\n")
 		fmt.Fprintf(os.Stderr, "  symlinkr [flags]\n\n")
 		fmt.Fprintf(os.Stderr, "Flags:\n")
-		fmt.Fprintf(os.Stderr, "  --config <path>    Config file path (default: symlinkr.yaml)\n")
-		fmt.Fprintf(os.Stderr, "  -r                 Uninstall mode (remove all symlinks)\n")
-		fmt.Fprintf(os.Stderr, "  -f                 Force overwrite existing files\n")
-		fmt.Fprintf(os.Stderr, "  --dry-run          Preview changes without executing\n")
-		fmt.Fprintf(os.Stderr, "  -v                 Show version information\n\n")
+		fmt.Fprintf(os.Stderr, "  -c, --config <path>  Config file path (default: symlinkr.yaml or symlinkr.yml)\n")
+		fmt.Fprintf(os.Stderr, "  -r                   Uninstall mode (remove all symlinks)\n")
+		fmt.Fprintf(os.Stderr, "  -f                   Force overwrite existing files\n")
+		fmt.Fprintf(os.Stderr, "  --dry-run            Preview changes without executing\n")
+		fmt.Fprintf(os.Stderr, "  -v                   Show version information\n\n")
 		fmt.Fprintf(os.Stderr, "Examples:\n")
 		fmt.Fprintf(os.Stderr, "  symlinkr                              # Apply config\n")
 		fmt.Fprintf(os.Stderr, "  symlinkr --dry-run                    # Preview changes\n")
@@ -46,7 +48,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	cfg, err := LoadConfig(*configPath)
+	cfg, err := LoadConfig(resolveConfigPath(configPath))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
@@ -76,6 +78,25 @@ func main() {
 	if stats.Errors > 0 {
 		os.Exit(1)
 	}
+}
+
+// resolveConfigPath returns flagPath if set, otherwise symlinkr.yaml if it
+// exists, then symlinkr.yml. When neither exists it returns symlinkr.yaml,
+// so the missing-config error stays the same.
+func resolveConfigPath(flagPath string) string {
+	if flagPath != "" {
+		return flagPath
+	}
+
+	if info, err := os.Stat("symlinkr.yaml"); err == nil && info.Mode().IsRegular() {
+		return "symlinkr.yaml"
+	}
+
+	if info, err := os.Stat("symlinkr.yml"); err == nil && info.Mode().IsRegular() {
+		return "symlinkr.yml"
+	}
+
+	return "symlinkr.yaml"
 }
 
 func runApplyMode(cfg *Config, force, dryRun bool, stats *Stats) error {

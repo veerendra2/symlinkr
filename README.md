@@ -38,16 +38,16 @@ Usage:
   symlinkr [flags]
 
 Flags:
-  --config <path>    Config file path (default: symlinkr.yaml)
-  -r                 Uninstall mode (remove all symlinks)
-  -f                 Force overwrite existing files
-  --dry-run          Preview changes without executing
-  -v                 Show version information
+  -c, --config <path>  Config file path (default: symlinkr.yaml or symlinkr.yml)
+  -r                   Uninstall mode (remove all symlinks)
+  -f                   Force overwrite existing files
+  --dry-run            Preview changes without executing
+  -v                   Show version information
 
 Examples:
   symlinkr                              # Apply config
   symlinkr --dry-run                    # Preview changes
-  symlinkr --config ~/dotfiles.yaml     # Custom config
+  symlinkr -c ~/dotfiles.yaml           # Custom config
   symlinkr -f                           # Force overwrite
   symlinkr -r                           # Uninstall
   symlinkr -r --dry-run                 # Preview uninstall
@@ -55,7 +55,7 @@ Examples:
 
 ### Configuration
 
-Default configuration file is `symlinkr.yaml` in the current working directory.
+Default configuration file is `symlinkr.yaml` in the current working directory, with `symlinkr.yml` as a fallback.
 
 ```yaml
 root_dir: "~/projects/dotfiles"
@@ -92,7 +92,7 @@ symlinks:
 
 ### Use Case: Dotfiles Management
 
-`symlinkr` is designed to be lightweight and zero-dependency, making it ideal for managing dotfiles repositories.
+`symlinkr` is a lightweight single binary, a good fit for managing dotfiles repositories.
 
 You can drop the standalone binary and a `symlinkr.yaml` config directly into your dotfiles repository or install script:
 
@@ -107,7 +107,7 @@ dotfiles/
 └── symlinkr.yaml
 ```
 
-Bootstrap your entire environment on a new machine with a single command:
+Bootstrap a new machine with a single command:
 
 ```bash
 ./bin/symlinkr --config ./symlinkr.yaml
@@ -115,7 +115,7 @@ Bootstrap your entire environment on a new machine with a single command:
 
 ### Important Notes & Gotchas
 
-- **Stateless**: `symlinkr` does not store state or maintain a registry of created links. It operates purely by evaluating the YAML config against the current filesystem. Removing an entry from your config will not automatically delete its existing symlink on `-r`.
+- **Stateless**: `symlinkr` does not store state or maintain a registry of created links. It evaluates the YAML config against the current filesystem. Removing an entry from your config will not automatically delete its existing symlink on `-r`.
 - **No automatic backups**: Existing regular files or directories at destination paths are skipped by default. Using `-f` or `force_overwrite: true` permanently removes them without creating `.bak` files.
 - **Root confinement**: Source paths must reside inside `root_dir`. Any path attempting to escape `root_dir` (e.g. `../file`) is rejected.
 
