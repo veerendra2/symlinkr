@@ -80,10 +80,9 @@ func main() {
 	}
 }
 
-// resolveConfigPath returns the explicit path when set, otherwise picks the
-// first default config present in the working directory (symlinkr.yaml wins
-// over symlinkr.yml). Falls back to symlinkr.yaml so missing-config errors
-// stay unchanged.
+// resolveConfigPath returns flagPath if set, otherwise symlinkr.yaml if it
+// exists, then symlinkr.yml. When neither exists it returns symlinkr.yaml,
+// so the missing-config error stays the same.
 func resolveConfigPath(flagPath string) string {
 	if flagPath != "" {
 		return flagPath
