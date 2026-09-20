@@ -106,6 +106,36 @@ symlinks:
 	})
 }
 
+func TestResolveConfigPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		flagPath string
+		files    []string
+		expected string
+	}{
+		{name: "explicit path wins", flagPath: "custom.yaml", files: []string{"symlinkr.yaml"}, expected: "custom.yaml"},
+		{name: "fallback to yml", flagPath: "", files: []string{"symlinkr.yml"}, expected: "symlinkr.yml"},
+		{name: "yaml preferred over yml", flagPath: "", files: []string{"symlinkr.yaml", "symlinkr.yml"}, expected: "symlinkr.yaml"},
+		{name: "default when neither exists", flagPath: "", files: nil, expected: "symlinkr.yaml"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			t.Chdir(tmpDir)
+			for _, f := range tt.files {
+				if err := os.WriteFile(filepath.Join(tmpDir, f), nil, 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			if got := resolveConfigPath(tt.flagPath); got != tt.expected {
+				t.Errorf("resolveConfigPath() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestSymlinkOperations(t *testing.T) {
 	tmpDir := t.TempDir()
 
