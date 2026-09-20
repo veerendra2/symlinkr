@@ -92,7 +92,7 @@ symlinks:
 
 ### Use Case: Dotfiles Management
 
-`symlinkr` is lightweight and has zero dependencies, a good fit for managing dotfiles repositories.
+`symlinkr` is a lightweight single binary, a good fit for managing dotfiles repositories.
 
 You can drop the standalone binary and a `symlinkr.yaml` config directly into your dotfiles repository or install script:
 

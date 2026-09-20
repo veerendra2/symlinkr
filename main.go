@@ -88,11 +88,11 @@ func resolveConfigPath(flagPath string) string {
 		return flagPath
 	}
 
-	if _, err := os.Stat("symlinkr.yaml"); err == nil {
+	if info, err := os.Stat("symlinkr.yaml"); err == nil && info.Mode().IsRegular() {
 		return "symlinkr.yaml"
 	}
 
-	if _, err := os.Stat("symlinkr.yml"); err == nil {
+	if info, err := os.Stat("symlinkr.yml"); err == nil && info.Mode().IsRegular() {
 		return "symlinkr.yml"
 	}
 
